@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b0a19">
+<title>PulseForge — Bach Piano Roll</title>
+<style>
+:root{color-scheme:dark;--bg:#090916;--panel:#15152c;--panel2:#1d1c3a;--line:#34345b;--muted:#aaa9c9;--purple:#a78bfa;--blue:#55b8ff;--cyan:#62e6f2}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 12% -5%,#352064 0,transparent 38%),radial-gradient(ellipse at 95% 5%,#10365d 0,transparent 34%),var(--bg);color:#f5f3ff;font:14px/1.45 Inter,system-ui,sans-serif}
+header{height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid #ffffff18;background:#0b0a19df;position:sticky;top:0;z-index:5;backdrop-filter:blur(16px)}
+.brand{display:flex;gap:11px;align-items:center;font-weight:800;font-size:17px}.mark{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,var(--purple),var(--blue));display:grid;place-items:center;color:#111;font-weight:900}
+a{color:#b8a6ff;text-decoration:none}a:hover{text-decoration:underline}
+main{max-width:1450px;margin:auto;padding:22px}.eyebrow{font-size:10px;letter-spacing:2px;color:var(--cyan);font-weight:800;text-transform:uppercase}
+h1{font-size:clamp(24px,4vw,36px);margin:4px 0;letter-spacing:-1px}p{color:var(--muted);margin:4px 0}
+.panel{background:linear-gradient(145deg,#191831f5,#101024f5);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-top:18px}
+.toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:14px;border-bottom:1px solid #ffffff12}
+button{background:#252248;color:#f5f3ff;border:1px solid #45406f;border-radius:10px;padding:9px 13px;font:inherit;cursor:pointer}
+button:hover{border-color:var(--blue);background:#302b5b}button.primary{background:linear-gradient(110deg,#8057e9,#328edc);border:0;font-weight:750}
+button:disabled{opacity:.35;cursor:not-allowed}.metric{background:#100f22;border:1px solid #343253;border-radius:10px;padding:8px 11px;color:#c9c5e8;font-size:12px}
+.metric b{color:white}.tempo{display:flex;align-items:center;gap:8px}.tempo input{width:100px;accent-color:var(--purple)}
+.songinfo{padding:15px 17px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}.songinfo strong{font-size:15px}.songinfo span{font-size:11px;color:var(--muted)}
+.viewer{padding:14px;overflow:auto}.grid-shell{min-width:760px;display:grid;grid-template-columns:58px 1fr;gap:0}
+.pitch-labels{display:grid;grid-template-rows:repeat(48,17px);padding-top:0}
+.pitch-label{height:17px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#aaa7c8;background:#17162e;border-bottom:1px solid #ffffff0a;border-right:1px solid #39355f}
+.pitch-label.blackkey{background:#111125;color:#827da8}
+.roll{position:relative;display:grid;grid-template-columns:repeat(64,minmax(10px,1fr));grid-template-rows:repeat(48,17px);background:#0b0b19;border:1px solid #3a365e;overflow:hidden}
+.rollcell{border-right:1px solid #ffffff0a;border-bottom:1px solid #ffffff0a;pointer-events:none}
+.rollcell.bar{border-right:2px solid #7770a6}
+.rollcell.beat{border-right:1px solid #4b466d}
+.rollcell.blackrow{background:#ffffff03}
+.note{position:relative;z-index:2;margin:2px 1px;border-radius:3px;min-width:2px;box-shadow:inset 0 0 0 1px #ffffff35;pointer-events:none}
+.note.black{filter:saturate(.8);opacity:.93}
+.playhead{position:absolute;top:0;bottom:0;width:2px;background:#fff;box-shadow:0 0 12px #fff;z-index:4;pointer-events:none;display:none}
+.bottom{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 15px;border-top:1px solid #ffffff12}
+.legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:11px}.swatch{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}
+.hint{font-size:11px;color:var(--muted);padding:0 16px 14px}
+.status{font-size:12px;color:var(--cyan)}
+@media(max-width:650px){header{padding:0 13px}main{padding:16px 10px}.toolbar{gap:6px}.toolbar button{padding:8px 10px}.tempo{width:100%;justify-content:space-between}}
+</style>
+</head>
+<body>
+<header><div class="brand"><div class="mark">P</div><div>PulseForge <span style="color:#8e89b3;font-size:10px;letter-spacing:1.5px">PIANO ROLL VIEWER</span></div></div><a href="index.html">← Back to studio</a></header>
+<main>
+<div class="eyebrow">Read-only score visualisation</div>
+<h1>Bach — Prelude No. 1 in C Major</h1>
+<p>The Well-Tempered Clavier, Book I · BWV 846 · Glenn Gould performance reference</p>
+<section class="panel">
+<div class="songinfo"><div><strong>Complete piano-roll score</strong><br><span>35 bars · 4/4 · original score-derived MIDI · notes cannot be edited</span></div><div class="metric">KEY <b>C MAJOR</b> &nbsp;·&nbsp; TIME <b>4/4</b></div></div>
+<div class="toolbar">
+<button class="primary" id="play">▶ Play full piece</button><button id="stop">■ Stop</button>
+<button id="prev">← Previous bars</button><span class="metric" id="page">Bars 1–4 of 35</span><button id="next">Next bars →</button>
+<label class="tempo metric">TEMPO <input id="tempo" type="range" min="45" max="80" step="0.5" value="58.5"><b id="tempoVal">58.5</b> BPM</label>
+<span class="status" id="status">Loading original notes…</span>
+</div>
+<div class="viewer"><div class="grid-shell"><div class="pitch-labels" id="labels"></div><div class="roll" id="roll"><div class="playhead" id="head"></div></div></div></div>
+<div class="bottom"><div class="legend"><span><i class="swatch" style="background:#8b78ef"></i>Low register</span><span><i class="swatch" style="background:#4d9be9"></i>Middle register</span><span><i class="swatch" style="background:#55d5dc"></i>High register</span><span>One column = one sixteenth note</span></div><span class="metric" id="duration">Approx. 2:24 at 58.5 BPM</span></div>
+<div class="hint">The notes are displayed for viewing only, like the note grid in Chrome Music Lab. Use the bar controls to inspect the full piece. Playback uses a synthesized piano tone.</div>
+</section>
+</main>
+<script>
+const MIDI_URL='https://raw.githubusercontent.com/wustep/jev-playground/main/docs/ref-midi/public/bach-bwv846-wtk1-prelude1.mid';
+const $=s=>document.querySelector(s);
+let allNotes=[],tempoEvents=[],division=480,playing=false,ctx=null,master=null,startAt=0,raf=0,sourceTempo=60;
+const minPitch=36,maxPitch=83,range=maxPitch-minPitch+1,barsPerPage=4,stepsPerBar=16;
+let pageStart=0;
+function readVLQ(data,state){let v=0,b;do{b=data[state.i++];v=(v<<7)|(b&127)}while(b&128);return v}
+function parseMidi(buffer){
+ const d=new Uint8Array(buffer),v=new DataView(buffer);let p=0;
+ if(String.fromCharCode(...d.slice(0,4))!=='MThd')throw Error('This is not a MIDI file');
+ const headerLen=v.getUint32(4);const tracks=v.getUint16(10);division=v.getUint16(12);p=8+headerLen;
+ let events=[],order=0;
+ for(let tr=0;tr<tracks;tr++){
+  if(String.fromCharCode(...d.slice(p,p+4))!=='MTrk')break;
+  const len=v.getUint32(p+4),end=p+8+len;p+=8;let tick=0,status=0;
+  while(p<end){
+   const state={i:p};tick+=readVLQ(d,state);p=state.i;
+   let b=d[p++];if(b<128){p--;b=status}else{status=b}
+   if(b===0xff){const type=d[p++],st={i:p},n=readVLQ(d,st);p=st.i;if(type===0x51&&n===3){const us=(d[p]<<16)|(d[p+1]<<8)|d[p+2];events.push({tick,kind:'tempo',us,order:order++})}p+=n;continue}
+   if(b===0xf0||b===0xf7){const st={i:p},n=readVLQ(d,st);p=st.i+n;continue}
+   const kind=b&0xf0,channel=b&15;
+   if(kind===0xc0||kind===0xd0){p++;continue}
+   const a=d[p++],bb=d[p++];
+   if(kind===0x90&&bb>0)events.push({tick,kind:'on',note:a,vel:bb,channel,order:order++});
+   else if(kind===0x80||(kind===0x90&&bb===0))events.push({tick,kind:'off',note:a,channel,order:order++});
+  }
+  p=end;
+ }
+ events.sort((a,b)=>a.tick-b.tick||a.order-b.order);
+ let tempos=[{tick:0,us:500000}];events.filter(e=>e.kind==='tempo').forEach(e=>tempos.push({tick:e.tick,us:e.us}));
+ tempos.sort((a,b)=>a.tick-b.tick);sourceTempo=60000000/tempos[0].us;
+ const secondsAt=tick=>{let sec=0,prev=0,us=tempos[0].us;for(let i=1;i<tempos.length&&tempos[i].tick<=tick;i++){sec+=(tempos[i].tick-prev)/division*us/1e6;prev=tempos[i].tick;us=tempos[i].us}return sec+(tick-prev)/division*us/1e6};
+ const active=new Map();let notes=[];
+ for(const e of events){if(e.kind==='on'){const k=e.channel+':'+e.note;if(!active.has(k))active.set(k,[]);active.get(k).push(e)}else if(e.kind==='off'){const k=e.channel+':'+e.note,q=active.get(k);if(q&&q.length){const on=q.shift();notes.push({pitch:on.note,start:secondsAt(on.tick),end:Math.max(secondsAt(e.tick),secondsAt(on.tick)+.045),velocity:on.vel/127})}}}
+ const finalTick=events.reduce((m,e)=>Math.max(m,e.tick),0),finalTime=secondsAt(finalTick);
+ active.forEach(q=>q.forEach(on=>notes.push({pitch:on.note,start:secondsAt(on.tick),end:finalTime,velocity:on.vel/127})));
+ return {notes,duration:finalTime,tempo:sourceTempo};
+}
+function color(p){if(p<48)return '#8874e9';if(p<64)return '#4d98e9';return '#54d1dd'}
+function noteName(n){return ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'][n%12]+(Math.floor(n/12)-1)}
+function buildLabels(){const el=$('#labels');el.innerHTML='';for(let p=maxPitch;p>=minPitch;p--){const d=document.createElement('div');d.className='pitch-label'+([1,3,6,8,10].includes(p%12)?' blackkey':'');d.textContent=noteName(p);el.append(d)}}
+function render(){
+ const roll=$('#roll');roll.querySelectorAll('.rollcell,.note').forEach(n=>n.remove());
+ const first=pageStart*stepsPerBar,last=Math.min(35,pageStart+barsPerPage)*stepsPerBar;
+ roll.style.gridTemplateColumns='repeat('+(last-first)+',minmax(10px,1fr))';
+ for(let r=0;r<range;r++)for(let c=0;c<last-first;c++){const el=document.createElement('i');el.className='rollcell'+(c%16===15?' bar':c%4===3?' beat':'')+([1,3,6,8,10].includes((maxPitch-r)%12)?' blackrow':'');el.style.gridRow=r+1;el.style.gridColumn=c+1;roll.insertBefore(el,$('#head'))}
+ const startSec=first/16*4*60/60; // score timeline is in bars; note seconds are rescaled at playback tempo below
+ const secPerQuarter=60/Number($('#tempo').value),sourceQuarter=60/sourceTempo;
+ allNotes.forEach(n=>{
+  const startBeat=n.start/sourceQuarter,endBeat=n.end/sourceQuarter;
+  const startStep=startBeat*4,endStep=endBeat*4;
+  const x=startStep-first,w=Math.max(.22,endStep-startStep);
+  if(x+w<=0||x>=last-first||n.pitch<minPitch||n.pitch>maxPitch)return;
+  const el=document.createElement('div');el.className='note'+([1,3,6,8,10].includes(n.pitch%12)?' black':'');
+  el.style.gridRow=maxPitch-n.pitch+1;el.style.gridColumn=(Math.max(0,x)+1)+' / span '+Math.max(1,Math.min(last-first-Math.max(0,x),Math.ceil(w)));
+  el.style.background=color(n.pitch);el.title=noteName(n.pitch);roll.insertBefore(el,$('#head'));
+ });
+ $('#page').textContent='Bars '+(pageStart+1)+'–'+Math.min(35,pageStart+barsPerPage)+' of 35';
+ $('#prev').disabled=pageStart===0;$('#next').disabled=pageStart+barsPerPage>=35;
+}
+function pianoVoice(pitch,velocity,when,duration){
+ if(!ctx)return;const f=440*Math.pow(2,(pitch-69)/12),t=when;
+ const g=ctx.createGain(),filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.setValueAtTime(6500,t);filter.frequency.exponentialRampToValueAtTime(1100,t+Math.max(.18,duration));
+ g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.008,velocity*.18),t+.008);g.gain.exponentialRampToValueAtTime(Math.max(.0001,velocity*.055),t+Math.max(.12,duration*.55));g.gain.exponentialRampToValueAtTime(.0001,t+duration+.18);g.connect(filter);filter.connect(master);
+ [1,2,3,4].forEach((h,i)=>{const o=ctx.createOscillator(),og=ctx.createGain();o.type='sine';o.frequency.value=f*h;og.gain.value=[1,.34,.13,.045][i];o.connect(og);og.connect(g);o.start(t);o.stop(t+duration+.2)});
+}
+function play(){
+ if(!allNotes.length)return;stop();ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();if(ctx.state==='suspended')ctx.resume();master=ctx.createGain();master.gain.value=.72;master.connect(ctx.destination);
+ const speed=Number($('#tempo').value),scale=(60/speed)/(60/sourceTempo);startAt=ctx.currentTime+.12;playing=true;
+ allNotes.forEach(n=>{const a=startAt+n.start*scale,b=Math.max(.08,(n.end-n.start)*scale);pianoVoice(n.pitch,n.velocity,a,b)});
+ $('#play').textContent='Ⅱ Playing';$('#status').textContent='Playing full piece';
+ const total=allNotes.reduce((m,n)=>Math.max(m,n.end),0)*scale;
+ const update=()=>{if(!playing)return;const elapsed=ctx.currentTime-startAt,bar=Math.max(0,Math.floor(elapsed/(4*60/speed)));const newPage=Math.min(Math.floor(bar/4)*4,32);if(newPage!==pageStart){pageStart=newPage;render()}const stepNow=elapsed/(60/speed)*4;const local=stepNow-pageStart*16;const head=$('#head');head.style.display='block';head.style.left=(Math.max(0,Math.min(1,local/(Math.min(35-pageStart,4)*16)))*100)+'%';if(elapsed>=total){stop();return}raf=requestAnimationFrame(update)};raf=requestAnimationFrame(update);
+}
+function stop(){playing=false;cancelAnimationFrame(raf);if(master){try{master.gain.setTargetAtTime(.0001,ctx.currentTime,.025)}catch(e){}setTimeout(()=>{if(!playing&&master){try{master.disconnect()}catch(e){}}},100)}$('#play').textContent='▶ Play full piece';$('#head').style.display='none';$('#status').textContent=allNotes.length?'Ready · read-only score':'Loading original notes…'}
+$('#play').onclick=play;$('#stop').onclick=stop;
+$('#prev').onclick=()=>{pageStart=Math.max(0,pageStart-4);render()};
+$('#next').onclick=()=>{pageStart=Math.min(32,pageStart+4);render()};
+$('#tempo').oninput=()=>{$('#tempoVal').textContent=Number($('#tempo').value).toFixed(1);$('#duration').textContent='Approx. '+formatTime(allNotes.reduce((m,n)=>Math.max(m,n.end),0)*(sourceTempo/Number($('#tempo').value)))+' at '+$('#tempo').value+' BPM'};
+function formatTime(s){return Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0')}
+buildLabels();
+fetch(MIDI_URL).then(r=>{if(!r.ok)throw Error('MIDI source could not be reached');return r.arrayBuffer()}).then(buf=>{const data=parseMidi(buf);allNotes=data.notes;sourceTempo=data.tempo;$('#status').textContent='Original score notes loaded · '+allNotes.length+' notes';$('#duration').textContent='Approx. '+formatTime(data.duration*(sourceTempo/Number($('#tempo').value)))+' at '+$('#tempo').value+' BPM';render()}).catch(err=>{$('#status').textContent='Could not load score notes';$('#status').title=err.message;console.error(err)});
+</script>
+</body></html>
