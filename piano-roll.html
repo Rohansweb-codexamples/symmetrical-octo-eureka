@@ -75,8 +75,8 @@ function parseMidi(buffer){
   while(p<end){
    const state={i:p};tick+=readVLQ(d,state);p=state.i;
    let b=d[p++];if(b<128){p--;b=status}else{status=b}
-   if(b===0xff){const type=d[p++],st={i:p},n=readVLQ(d,st);p=st.i;if(type===0x51&&n===3){const us=(d[p]<<16)|(d[p+1]<<8)|d[p+2];events.push({tick,kind:'tempo',us,order:order++})}p+=n;continue}
-   if(b===0xf0||b===0xf7){const st={i:p},n=readVLQ(d,st);p=st.i+n;continue}
+   if(b===0xff){status=0;const type=d[p++],st={i:p},n=readVLQ(d,st);p=st.i;if(type===0x51&&n===3){const us=(d[p]<<16)|(d[p+1]<<8)|d[p+2];events.push({tick,kind:'tempo',us,order:order++})}p+=n;continue}
+   if(b===0xf0||b===0xf7){status=0;const st={i:p},n=readVLQ(d,st);p=st.i+n;continue}
    const kind=b&0xf0,channel=b&15;
    if(kind===0xc0||kind===0xd0){p++;continue}
    const a=d[p++],bb=d[p++];
@@ -108,7 +108,7 @@ function render(){
  allNotes.forEach(n=>{
   const startBeat=n.start/sourceQuarter,endBeat=n.end/sourceQuarter;
   const startStep=startBeat*4,endStep=endBeat*4;
-  const x=startStep-first,w=Math.max(.22,endStep-startStep);
+  const x=Math.round(startStep)-first,w=Math.max(1,Math.ceil(endStep-startStep));
   if(x+w<=0||x>=last-first||n.pitch<minPitch||n.pitch>maxPitch)return;
   const el=document.createElement('div');el.className='note'+([1,3,6,8,10].includes(n.pitch%12)?' black':'');
   el.style.gridRow=maxPitch-n.pitch+1;el.style.gridColumn=(Math.max(0,x)+1)+' / span '+Math.max(1,Math.min(last-first-Math.max(0,x),Math.ceil(w)));
