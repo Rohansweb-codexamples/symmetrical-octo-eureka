@@ -57,11 +57,11 @@ button:disabled{opacity:.35;cursor:not-allowed}.metric{background:#100f22;border
 <div class="hint">The notes are displayed for viewing only, like the note grid in Chrome Music Lab. Use the bar controls to inspect the full piece. Note data: Tobias Erbsland, Mutopia Project (public-domain MIDI). The 58.5 BPM starting point is tuned to the listed 2:24 length of Gould’s 1962 recording; it is not a transcription of Gould’s individual timing and rubato.</div>
 </section>
 </main>
-<script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
+
 <script>
 const MIDI_URL='https://raw.githubusercontent.com/wustep/jev-playground/main/docs/ref-midi/public/bach-bwv846-wtk1-prelude1.mid';
 const $=s=>document.querySelector(s);
-let allNotes=[],tempoEvents=[],division=480,playing=false,ctx=null,master=null,startAt=0,raf=0,sourceTempo=60,pianoSampler=null;
+let allNotes=[],tempoEvents=[],division=480,playing=false,ctx=null,master=null,startAt=0,raf=0,sourceTempo=60;
 const minPitch=36,maxPitch=83,range=maxPitch-minPitch+1,barsPerPage=4,stepsPerBar=16;
 let pageStart=0;
 function readVLQ(data,state){let v=0,b;do{b=data[state.i++];v=(v<<7)|(b&127)}while(b&128);return v}
@@ -125,16 +125,44 @@ function pianoVoice(pitch,velocity,when,duration){
  [1,2,3,4].forEach((h,i)=>{const o=ctx.createOscillator(),og=ctx.createGain();o.type='sine';o.frequency.value=f*h;og.gain.value=[1,.34,.13,.045][i];o.connect(og);og.connect(g);o.start(t);o.stop(t+duration+.2)});
 }
 async function play(){
- if(!allNotes.length)return;stop();let useSamples=false;
- if(window.Tone){try{await Tone.start();if(!pianoSampler){pianoSampler=new Tone.Sampler({urls:{C2:'C2.mp3',G2:'G2.mp3',C3:'C3.mp3',G3:'G3.mp3',C4:'C4.mp3',G4:'G4.mp3',C5:'C5.mp3',G5:'G5.mp3',C6:'C6.mp3'},release:1,baseUrl:'https://tonejs.github.io/audio/salamander/'}).toDestination()}await Tone.loaded();useSamples=true}catch(e){console.warn('Piano samples unavailable; using built-in piano synth',e)}}
- ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();if(ctx.state==='suspended')ctx.resume();master=ctx.createGain();master.gain.value=.72;master.connect(ctx.destination);
- const speed=Number($('#tempo').value),scale=(60/speed)/(60/sourceTempo);startAt=useSamples?Tone.now()+.12:ctx.currentTime+.12;playing=true;
- allNotes.forEach(n=>{const a=startAt+n.start*scale,b=Math.max(.08,(n.end-n.start)*scale);if(useSamples)pianoSampler.triggerAttackRelease(Tone.Frequency(n.pitch,'midi'),b,a,Math.max(.12,n.velocity));else pianoVoice(n.pitch,n.velocity,a,b)});
- $('#play').textContent='Ⅱ Playing';$('#status').textContent='Playing full piece';
- const total=allNotes.reduce((m,n)=>Math.max(m,n.end),0)*scale;
- const update=()=>{if(!playing)return;const elapsed=(useSamples?Tone.now():ctx.currentTime)-startAt,bar=Math.max(0,Math.floor(elapsed/(4*60/speed)));const newPage=Math.min(Math.floor(bar/4)*4,32);if(newPage!==pageStart){pageStart=newPage;render()}const stepNow=elapsed/(60/speed)*4;const local=stepNow-pageStart*16;const head=$('#head');head.style.display='block';head.style.left=(Math.max(0,Math.min(1,local/(Math.min(35-pageStart,4)*16)))*100)+'%';if(elapsed>=total){stop();return}raf=requestAnimationFrame(update)};raf=requestAnimationFrame(update);
+ if(!allNotes.length){$('#status').textContent='Notes are not loaded yet';return}
+ stop();
+ try{
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC)throw Error('Web Audio is not supported in this browser');
+  ctx=ctx||new AC();
+  if(ctx.state!=='running')await ctx.resume();
+  master=ctx.createGain();master.gain.value=.82;master.connect(ctx.destination);
+  const speed=Number($('#tempo').value),scale=sourceTempo/speed;
+  startAt=ctx.currentTime+.15;playing=true;
+  allNotes.forEach(n=>pianoVoice(n.pitch,n.velocity,startAt+n.start*scale,Math.max(.07,(n.end-n.start)*scale)));
+  $('#play').textContent='Ⅱ Playing';$('#status').textContent='Playing · built-in piano instrument';
+  const total=allNotes.reduce((m,n)=>Math.max(m,n.end),0)*scale;
+  const update=()=>{
+   if(!playing)return;
+   const elapsed=ctx.currentTime-startAt;
+   const bar=Math.max(0,Math.floor(elapsed/(4*60/speed)));
+   const newPage=Math.min(Math.floor(bar/4)*4,32);
+   if(newPage!==pageStart){pageStart=newPage;render()}
+   const local=elapsed/(60/speed)*4-pageStart*16;
+   const head=$('#head');head.style.display='block';
+   head.style.left=(Math.max(0,Math.min(1,local/(Math.min(35-pageStart,4)*16)))*100)+'%';
+   if(elapsed>=total){stop();return}
+   raf=requestAnimationFrame(update);
+  };
+  raf=requestAnimationFrame(update);
+ }catch(err){playing=false;$('#status').textContent='Audio could not start — '+err.message;console.error(err)}
 }
-function stop(){playing=false;cancelAnimationFrame(raf);if(pianoSampler){try{pianoSampler.releaseAll()}catch(e){}}if(master){try{master.gain.setTargetAtTime(.0001,ctx.currentTime,.025)}catch(e){}setTimeout(()=>{if(!playing&&master){try{master.disconnect()}catch(e){}}},100)}$('#play').textContent='▶ Play full piece';$('#head').style.display='none';$('#status').textContent=allNotes.length?'Ready · read-only score':'Loading original notes…'}
+function stop(){
+ playing=false;cancelAnimationFrame(raf);
+ const oldMaster=master;master=null;
+ if(oldMaster&&ctx){
+  try{oldMaster.gain.cancelScheduledValues(ctx.currentTime);oldMaster.gain.setTargetAtTime(.0001,ctx.currentTime,.035)}catch(e){}
+  setTimeout(()=>{try{oldMaster.disconnect()}catch(e){}},250);
+ }
+ $('#play').textContent='▶ Play full piece';$('#head').style.display='none';
+ $('#status').textContent=allNotes.length?'Ready · click Play to listen':'Loading original notes…';
+}
 $('#play').onclick=play;$('#stop').onclick=stop;
 $('#prev').onclick=()=>{pageStart=Math.max(0,pageStart-4);render()};
 $('#next').onclick=()=>{pageStart=Math.min(32,pageStart+4);render()};
